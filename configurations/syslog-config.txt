@@ -1,0 +1,80 @@
+=====================================================================
+SYSLOG / LOG FORWARDING CONFIGURATION - SANITIZED LAB EXAMPLE
+=====================================================================
+Lab hosts:
+  Wazuh manager : soc  (Ubuntu, 192.168.188.132)
+  Linux agent   : alpine-lab (Alpine Linux 3.x, 192.168.188.130)
+
+Two approaches were explored. Use whichever matches your agent version and
+network design. These are templates, not verbatim production files.
+
+---------------------------------------------------------------------
+OPTION A - Agent-side <localfile> collection (recommended)
+---------------------------------------------------------------------
+Add the following blocks to /var/ossec/etc/ossec.conf on the Alpine agent.
+Then restart the agent:  rc-service wazuh-agent restart
+
+  <!-- Linux system messages / authentication -->
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/messages</location>
+  </localfile>
+
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/auth.log</location>
+  </localfile>
+
+  <!-- Nginx web telemetry generated in front of OWASP Juice Shop -->
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/nginx/access.log</location>
+  </localfile>
+
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/nginx/error.log</location>
+  </localfile>
+
+Verification:
+  - Search Wazuh for "Failed password" (Linux SSH Auth view, wazuh-archives-*)
+  - Generate a harmless HTTP request to Juice Shop and check for a new event
+
+Known gap in this lab:
+  The "Failed password" events were visible in the archives, but data.srcip
+  and data.srcuser were not extracted in the dashboard view. Decoder/extraction
+  tuning is still required for clean attribution.
+
+---------------------------------------------------------------------
+OPTION B - Manager-side syslog receiver (remote syslog)
+---------------------------------------------------------------------
+Add to /var/ossec/etc/ossec.conf on the Ubuntu manager if Linux devices
+forward syslog directly over the network:
+
+  <remote>
+    <connection>syslog</connection>
+    <port>514</port>
+    <protocol>udp</protocol>
+    <allowed-ips>192.168.188.0/24</allowed-ips>
+  </remote>
+
+Restart the manager:  systemctl restart wazuh-manager
+Confirm the agent source is allowed and that UDP/514 is reachable.
+
+---------------------------------------------------------------------
+Alpine OpenRC notes
+---------------------------------------------------------------------
+  ls -l /etc/init.d/                 # find the installed service name
+  rc-service <service> status
+  rc-service <service> start
+  rc-update add <service> default     # enable at boot
+
+Package repository troubleshooting:
+  cat /etc/apk/repositories           # check for /media/cdrom/apk (install media)
+  apk update
+
+---------------------------------------------------------------------
+Security note
+---------------------------------------------------------------------
+Only forward logs inside the isolated lab network. Do not publish real
+credentials, API keys, enrollment passwords, or unredacted sensitive logs.

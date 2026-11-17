@@ -1,0 +1,40 @@
+<!--
+  File Integrity Monitoring (FIM) configuration fragment for the Windows agent.
+  Source: C:\Program Files (x86)\ossec-agent\ossec.conf
+  Lab host: soc-windows (192.168.188.129)
+
+  Insert this block inside the <ossec_config> element of ossec.conf.
+  Keep a backup of the original file before editing, then restart WazuhSvc
+  and confirm the "File integrity monitoring scan started" and
+  "Real-time file integrity monitoring started" messages in ossec.log.
+
+  NOTE: This is a sanitized example. Replace the user path with your own,
+  and check the report_changes option against your privacy requirements.
+-->
+<syscheck>
+  <disabled>no</disabled>
+
+  <!-- Full scan every 12 hours (43,200 seconds) in addition to real-time checks -->
+  <frequency>43200</frequency>
+  <scan_on_start>yes</scan_on_start>
+
+  <!-- Persistence-sensitive location: Windows Startup folder -->
+  <directories realtime="yes">%PROGRAMDATA%\Microsoft\Windows\Start Menu\Programs\Startup</directories>
+
+  <!-- User activity location: Desktop of the monitored account -->
+  <directories realtime="yes" report_changes="yes" check_all="yes">C:\Users\dex\Desktop</directories>
+</syscheck>
+
+<!--
+  Option reference:
+    realtime="yes"       - real-time monitoring on supported filesystems
+    report_changes="yes" - record content changes for supported files
+    check_all="yes"      - enable all supported integrity checks (size, mtime,
+                           permissions, owner, hash, etc.)
+    frequency            - periodic scan interval in seconds
+    scan_on_start        - run a baseline scan when the agent starts
+
+  Fix applied during the build:
+    report_changes=""yes"  (invalid XML)
+    report_changes="yes"   (corrected)
+-->
