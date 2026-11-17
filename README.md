@@ -163,4 +163,3 @@ OWASP Juice Shop was run **only** inside an isolated, authorized lab network and
 
 ---
 
-**Status:** Lab build complete. Validation gaps are documented rather than implied.
